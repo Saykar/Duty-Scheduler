@@ -6,6 +6,7 @@ from flask import jsonify
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
+from workalendar.usa import California
 import calendar
 
 app = Flask(__name__)
@@ -33,6 +34,16 @@ class Schedules(db.Model):
 
 db.create_all()
 
+def get_next_working_day(working_date):
+    cal = California()
+    holidays = cal.holidays(working_date.year)
+    holiday_dates = []
+    for holiday in holidays:
+        holiday_dates.append(holiday[0])
+    while working_date.weekday() > 4 or working_date in holiday_dates:
+        working_date = working_date + timedelta(days=1)
+    return working_date
+
 @app.route("/")
 def hello():
     return "Hello World!"
@@ -42,7 +53,6 @@ def add_users():
     print request.headers
     print request.data
     for data in request.json.get("users"):
-        print data
         user = Users(data)
         db.session.add(user)
     db.session.commit()
@@ -68,11 +78,12 @@ def init_schedule():
     Schedules.query.delete()
     day = date.today()
     for item in request.json.get("users"):
-        print item
+        #check if day to be assigned is weekend/holiday
+        day = get_next_working_day(day)
         schedule = Schedules(day,item)
         db.session.add(schedule)
-        day = day + timedelta(days=1)
         db.session.commit()
+        day = day + timedelta(days=1)
     resp = make_response()
     data = {'message': "Success!"}
     resp = jsonify(data)
@@ -83,27 +94,26 @@ def get_schedules():
     user = request.args.get('user')
     time_range = request.args.get('time_range')
     today_date = date.today()
-    scheduleList = []
-    if user :
-        scheduleList = Schedules.query.filter_by(name = user)
+    schedule_list = []
+    if user:
+        schedule_list = Schedules.query.filter_by(name = user)
     elif time_range:
         if time_range == "today":
-            scheduleList = Schedules.query.filter_by(date = today_date)
+            schedule_list = Schedules.query.filter_by(date = today_date)
         elif time_range == "month":
-            firstday = date(today_date.year, today_date.month, 1)
+            first_day = date(today_date.year, today_date.month, 1)
             days_in_month = calendar.monthrange(today_date.year,today_date.month)[1]
-            lastday = date(today_date.year, today_date.month, days_in_month)
-            scheduleList = Schedules.query.filter(Schedules.date.between(firstday,lastday))
-    else :
-        scheduleList = Schedules.query.all()
+            last_day = date(today_date.year, today_date.month, days_in_month)
+            schedule_list = Schedules.query.filter(Schedules.date.between(first_day,last_day))
+    else:
+        schedule_list = Schedules.query.all()
     #Display the query result as JSON
-    list = []
-    for schedule in scheduleList:
-        json_obj = {}
-        json_obj[str(schedule.date)] = schedule.name
-        list.append(json_obj)
+    json_list = []
+    for schedule in schedule_list:
+        json_obj = {str(schedule.date): schedule.name}
+        json_list.append(json_obj)
     resp = make_response()
-    resp = jsonify(schedules = list)
+    resp = jsonify(schedules = json_list)
     return resp
 
 if __name__ == "__main__":
