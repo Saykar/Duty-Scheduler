@@ -6,6 +6,7 @@ from flask import jsonify
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
+import calendar
 
 app = Flask(__name__)
 
@@ -79,7 +80,23 @@ def init_schedule():
 
 @app.route('/schedules', methods=['GET'])
 def get_schedules():
-    scheduleList = Schedules.query.all()
+    user = request.args.get('user')
+    time_range = request.args.get('time_range')
+    today_date = date.today()
+    scheduleList = []
+    if user :
+        scheduleList = Schedules.query.filter_by(name = user)
+    elif time_range:
+        if time_range == "today":
+            scheduleList = Schedules.query.filter_by(date = today_date)
+        elif time_range == "month":
+            firstday = date(today_date.year, today_date.month, 1)
+            days_in_month = calendar.monthrange(today_date.year,today_date.month)[1]
+            lastday = date(today_date.year, today_date.month, days_in_month)
+            scheduleList = Schedules.query.filter(Schedules.date.between(firstday,lastday))
+    else :
+        scheduleList = Schedules.query.all()
+    #Display the query result as JSON
     list = []
     for schedule in scheduleList:
         json_obj = {}
