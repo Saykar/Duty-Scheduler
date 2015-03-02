@@ -1,4 +1,17 @@
-The project is developed in Python Flask and MySQL.
+Project Description:
+This is a Duty Scheduler application developed in Python Flask and MySQL.
+app.py contains APIs defined using Flask framework to interact with MySQL database using SQLAlchemy.
+MySQL database stores schedule information.
+cli.py is a Command Line Interface provided to interact with users. It uses APIs defined in app.py
+Used 'workalendar' toolkit for California holidays. https://github.com/novapost/workalendar
+
+Assumptions:
+1. User provides starting order which is used by the application to initialize the schedule.
+   If user re-initializes, the new schedule replaces the existing schedule.
+2. If the user marks a day as undoable using 'reschedule' option on CLI, he will be replaced by another user
+   from future schedules if possible without conflicts.
+3. Schedules can be swapped only between future schedules.
+4. 'month' option in CLI displays schedules for current month (1st day of the month - last day of the month).
 
 To run the project:
 1. pip install -requirements.txt
@@ -68,3 +81,9 @@ Success
 Success. swapped schedules:
 Boris 2015-03-11
 Kevin 2015-03-03
+
+
+References:
+http://flask.pocoo.org
+http://pythonhosted.org/Flask-SQLAlchemy/
+https://github.com/novapost/workalendar
