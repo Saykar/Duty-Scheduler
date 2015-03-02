@@ -14,35 +14,39 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root123@localhost/duty_scheduler'
 db = SQLAlchemy(app)
 
-#User model
+# User model
 class Users(db.Model):
     #id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), primary_key=True)
     #schedules = db.relationship('Schedules',backref='Users')
     #constructor
-    def __init__(self,name):
+    def __init__(self, name):
         self.name = name
+
 
 #Schedule model
 class Schedules(db.Model):
     date = db.Column(db.Date, primary_key=True)
-    name = db.Column(db.String(100))#, db.ForeignKey('users.name'))
+    name = db.Column(db.String(100))  #, db.ForeignKey('users.name'))
     #constructor
     def __init__(self, date, name):
         self.date = date
         self.name = name
 
+
 #off-duty model
 class OffDuty(db.Model):
-    name = db.Column(db.String(100),primary_key=True)
-    date = db.Column(db.Date,primary_key=True)
+    name = db.Column(db.String(100), primary_key=True)
+    date = db.Column(db.Date, primary_key=True)
     #constructor
     def __init__(self, name, off_date):
         self.name = name
         self.date = off_date
 
+# Create tables for corresponding models defined above
 db.create_all()
 
+# Function to account for holidays/weekends
 def get_next_working_day(working_date):
     cal = California()
     holidays = cal.holidays(working_date.year)
@@ -55,8 +59,9 @@ def get_next_working_day(working_date):
 
 @app.route("/")
 def hello():
-    return "Hello World!"
+    return "Duty Scheduler"
 
+# API to add new user
 @app.route('/users', methods=['POST'])
 def add_users():
     print request.headers
@@ -70,6 +75,7 @@ def add_users():
     resp = jsonify(data)
     return resp
 
+# API to display list of users
 @app.route('/users', methods=['GET'])
 def get_all_users():
     userList = Users.query.all()
@@ -77,9 +83,10 @@ def get_all_users():
     for user in userList:
         list.append(user.name)
     #resp = make_response()
-    resp = jsonify(users = list)
+    resp = jsonify(users=list)
     return resp
 
+# API to initialize schedule by the provided starting order
 @app.route('/schedule/init', methods=['POST'])
 def init_schedule():
     print request.headers
@@ -90,7 +97,7 @@ def init_schedule():
     for item in request.json.get("users"):
         #check if day to be assigned is weekend/holiday
         day = get_next_working_day(day)
-        schedule = Schedules(day,item)
+        schedule = Schedules(day, item)
         db.session.add(schedule)
         db.session.commit()
         day = day + timedelta(days=1)
@@ -99,24 +106,7 @@ def init_schedule():
     resp = jsonify(data)
     return resp
 
-'''
-@app.route('/schedule/add', methods=['POST'])
-def add_schedule():
-    #day = date.today()
-    last_date = Schedules.query.filter_by()
-    for item in request.json.get("users"):
-        #check if day to be assigned is weekend/holiday
-        day = get_next_working_day(day)
-        schedule = Schedules(day,item)
-        db.session.add(schedule)
-        db.session.commit()
-        day = day + timedelta(days=1)
-    #resp = make_response()
-    data = {'message': "Success!"}
-    resp = jsonify(data)
-    return resp
-'''
-
+# API to swap duty with another user's specific day
 @app.route('/schedule/swap', methods=['POST'])
 def swap():
     from_user = request.json.get("from_user")
@@ -124,45 +114,56 @@ def swap():
     to_user = request.json.get("to_user")
     to_date = request.json.get("to_date")
     resp = make_response()
-    if (datetime.strptime(from_date ,"%Y-%m-%d").date() <= date.today() or \
-                    datetime.strptime(to_date ,"%Y-%m-%d").date() <= date.today()):
-        resp = jsonify({"error" : "Date cannot be today or before"})
+    # For swapping duty with another user for specified date,
+    # check if correct dates are provided
+    if (datetime.strptime(from_date, "%Y-%m-%d").date() <= date.today() or \
+                    datetime.strptime(to_date, "%Y-%m-%d").date() <= date.today()):
+        resp = jsonify({"error": "Date cannot be today or before"})
         resp.status_code = 400
-    from_schedule = Schedules.query.filter_by(name=from_user,date=from_date).first()
-    to_schedule = Schedules.query.filter_by(name=to_user,date=to_date).first()
+        return resp
+    # Check if dates provided exist in the Schedules table
+    from_schedule = Schedules.query.filter_by(name=from_user, date=from_date).first()
+    to_schedule = Schedules.query.filter_by(name=to_user, date=to_date).first()
     if from_schedule and to_schedule:
         from_schedule.name = to_user
         to_schedule.name = from_user
         db.session.commit()
         resp = jsonify({})
     else:
-        resp = jsonify({"error" : "Unable to swap. Incorrect schedules."})
+        resp = jsonify({"error": "Incorrect schedule/s provided. "
+                                 "Can only swap schedules that are assigned to provided users."})
         resp.status_code = 404
     return resp
 
+# API to mark a date as off-duty and reschedule
 @app.route('/schedule/off-duty', methods=['POST'])
 def off_duty():
     resp = make_response()
     user = request.json.get("user")
     off_duty_date = request.json.get("date")
-    schedule = Schedules.query.filter_by(name=user,date=off_duty_date).first()
-    if schedule is None:
-        resp = jsonify({"error":"You are not assigned for this date. No need to off-duty."})
+    schedule = Schedules.query.filter_by(name=user, date=off_duty_date).first()
+    # If off_duty_date is today/past date or it is not assigned to user then return without rescheduling
+    if datetime.strptime(off_duty_date, "%Y-%m-%d").date() <= date.today():
+        resp = jsonify({"error": "Can't reassign for today or past date."})
+        resp.status_code = 400
+        return resp
+    elif schedule is None:
+        resp = jsonify({"error": "You are not assigned for this date. No need to off-duty."})
         resp.status_code = 400
         return resp
     else:
         # find a user to replace
-        tomorrow = date.today()+timedelta(days=1)
+        tomorrow = date.today() + timedelta(days=1)
         schedule_list = Schedules.query.filter(Schedules.name != user, Schedules.date >= tomorrow)
         for schedule in schedule_list:
             print schedule.name
-            replacement_in_off_duty = OffDuty.query.filter_by(name = schedule.name, date = off_duty_date).first()
+            replacement_in_off_duty = OffDuty.query.filter_by(name=schedule.name, date=off_duty_date).first()
             # If this user is not off-call on same date
             if replacement_in_off_duty is None:
                 to_user = schedule.name
                 to_date = schedule.date
-                from_schedule = Schedules.query.filter_by(name=user,date=off_duty_date).first()
-                to_schedule = Schedules.query.filter_by(name=to_user,date=to_date).first()
+                from_schedule = Schedules.query.filter_by(name=user, date=off_duty_date).first()
+                to_schedule = Schedules.query.filter_by(name=to_user, date=to_date).first()
                 if from_schedule and to_schedule:
                     from_schedule.name = to_user
                     to_schedule.name = user
@@ -176,14 +177,16 @@ def off_duty():
                         print e
                         print "The off-call entry already exists"
                         db.session.rollback()
-                    resp = jsonify({from_schedule.name:str(from_schedule.date),to_schedule.name : str(to_schedule.date)})
+                    resp = jsonify(
+                        {from_schedule.name: str(from_schedule.date), to_schedule.name: str(to_schedule.date)})
                     return resp
                 else:
                     print "The user is off call on the same date"
-        resp = jsonify({"error" : "No one available for replacement"})
+        resp = jsonify({"error": "No one available for replacement"})
         resp.status_code = 400
         return resp
 
+# API to display the schedules by query parameters of specific user or time_range
 @app.route('/schedules', methods=['GET'])
 def get_schedules():
     user = request.args.get('user')
@@ -191,15 +194,15 @@ def get_schedules():
     today_date = date.today()
     schedule_list = []
     if user:
-        schedule_list = Schedules.query.filter_by(name = user)
+        schedule_list = Schedules.query.filter_by(name=user)
     elif time_range:
         if time_range == "today":
-            schedule_list = Schedules.query.filter_by(date = today_date)
+            schedule_list = Schedules.query.filter_by(date=today_date)
         elif time_range == "month":
             first_day = date(today_date.year, today_date.month, 1)
-            days_in_month = calendar.monthrange(today_date.year,today_date.month)[1]
+            days_in_month = calendar.monthrange(today_date.year, today_date.month)[1]
             last_day = date(today_date.year, today_date.month, days_in_month)
-            schedule_list = Schedules.query.filter(Schedules.date.between(first_day,last_day))
+            schedule_list = Schedules.query.filter(Schedules.date.between(first_day, last_day))
     else:
         schedule_list = Schedules.query.all()
     #Display the query result as JSON
@@ -208,8 +211,9 @@ def get_schedules():
         json_obj = {str(schedule.date): schedule.name}
         json_list.append(json_obj)
     #resp = make_response()
-    resp = jsonify(schedules = json_list)
+    resp = jsonify(schedules=json_list)
     return resp
+
 
 if __name__ == "__main__":
     app.run(debug=1)

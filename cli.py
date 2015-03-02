@@ -8,7 +8,8 @@ argparser = argparse.ArgumentParser(description='Duty Scheduler')
 
 argparser.add_argument('-t','--today', action="store_true", help='Displays today\'s Support Hero')
 argparser.add_argument('-m','--month', action="store_true", help='Displays schedule for all users in current month')
-argparser.add_argument('-i','--initialize', nargs='+', help='Initialize the schedule with starting order')
+argparser.add_argument('-i','--initialize', nargs='+', help='Initialize the schedule with starting order.  '
+                                                            'Usage: cli -i <user1 user2 user3 user4 ...>')
 argparser.add_argument('-u','--user', help='Displays user\'s schedule ')
 argparser.add_argument('-s','--swap', nargs='+',
                        help='Usage: cli -s <user1 date1 user2 date2>. The date should be in YYYY-mm-dd format')
@@ -64,8 +65,9 @@ if options['swap']:
     if response.status_code == 200:
         print "Success"
     else:
-        print "Error"
-        print response.text
+        json_data = json.loads(response.text)
+        for key, value in json_data.items():
+            print key, value
 
 if options['reschedule']:
     url = "http://127.0.0.1:5000/schedule/off-duty"
@@ -80,5 +82,6 @@ if options['reschedule']:
         for key, value in json_data.items():
             print key, value
     else:
-        print "Error"
-        print response.text
+        json_data = json.loads(response.text)
+        for key, value in json_data.items():
+            print key, value

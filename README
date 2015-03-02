@@ -8,6 +8,8 @@ To run the project:
    python app.py
 4. Use cli:
 
+Examples:
+
 > python cli.py -h
 usage: cli.py [-h] [-t] [-m] [-i INITIALIZE [INITIALIZE ...]] [-u USER]
               [-s SWAP [SWAP ...]] [-r RESCHEDULE [RESCHEDULE ...]]
@@ -20,15 +22,15 @@ optional arguments:
   -m, --month           Displays schedule for all users in current month
   -i INITIALIZE [INITIALIZE ...], --initialize INITIALIZE [INITIALIZE ...]
                         Initialize the schedule with starting order
+                        Usage: cli -i <user1 user2 user3 user4 ...>
   -u USER, --user USER  Displays user's schedule
   -s SWAP [SWAP ...], --swap SWAP [SWAP ...]
-                        Usage: cli -s <user1 date1 user2 date2>. The date
-                        should be in YYYY-mm-dd format
+                        The date should be in YYYY-mm-dd format.
+                        Usage: cli -s <user1 date1 user2 date2>
   -r RESCHEDULE [RESCHEDULE ...], --reschedule RESCHEDULE [RESCHEDULE ...]
                         Usage: cli -s <user1 date1>. Mark as undoable and
                         reschedule to new date.
 
-Examples:
 
 > python cli.py -i Sherry  Boris  Vicente  Matte  Jack  Sherry   Matte  Kevin  Kevin  Vicente  Zoe  Kevin   Matte  Zoe  Jay  Boris  Eadon  Sherry
 Success
@@ -52,6 +54,12 @@ Success
 2015-03-23 Boris
 2015-03-24 Eadon
 2015-03-25 Sherry
+
+> python cli.py -u Kevin
+Schedule for Kevin
+2015-03-03
+2015-03-16
+2015-03-17
 
 > python cli.py -s Kevin 2015-03-12 Zoe 2015-03-16
 Success
