@@ -1,0 +1,62 @@
+The project is developed in Python Flask and MySQL.
+
+To run the project:
+1. pip install -requirements.txt
+2. Setup database and tables.
+   python setup.py
+3. Start the API server.
+   python app.py
+4. Use cli:
+
+> python cli.py -h
+usage: cli.py [-h] [-t] [-m] [-i INITIALIZE [INITIALIZE ...]] [-u USER]
+              [-s SWAP [SWAP ...]] [-r RESCHEDULE [RESCHEDULE ...]]
+
+Duty Scheduler
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t, --today           Displays today's Support Hero
+  -m, --month           Displays schedule for all users in current month
+  -i INITIALIZE [INITIALIZE ...], --initialize INITIALIZE [INITIALIZE ...]
+                        Initialize the schedule with starting order
+  -u USER, --user USER  Displays user's schedule
+  -s SWAP [SWAP ...], --swap SWAP [SWAP ...]
+                        Usage: cli -s <user1 date1 user2 date2>. The date
+                        should be in YYYY-mm-dd format
+  -r RESCHEDULE [RESCHEDULE ...], --reschedule RESCHEDULE [RESCHEDULE ...]
+                        Usage: cli -s <user1 date1>. Mark as undoable and
+                        reschedule to new date.
+
+Examples:
+
+> python cli.py -i Sherry  Boris  Vicente  Matte  Jack  Sherry   Matte  Kevin  Kevin  Vicente  Zoe  Kevin   Matte  Zoe  Jay  Boris  Eadon  Sherry
+Success
+
+> python cli.py -m
+2015-03-02 Sherry
+2015-03-03 Boris
+2015-03-04 Vicente
+2015-03-05 Matte
+2015-03-06 Jack
+2015-03-09 Sherry
+2015-03-10 Matte
+2015-03-11 Kevin
+2015-03-12 Kevin
+2015-03-13 Vicente
+2015-03-16 Zoe
+2015-03-17 Kevin
+2015-03-18 Matte
+2015-03-19 Zoe
+2015-03-20 Jay
+2015-03-23 Boris
+2015-03-24 Eadon
+2015-03-25 Sherry
+
+> python cli.py -s Kevin 2015-03-12 Zoe 2015-03-16
+Success
+
+> python cli.py -r Kevin 2015-03-11
+Success. swapped schedules:
+Boris 2015-03-11
+Kevin 2015-03-03

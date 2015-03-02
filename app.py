@@ -85,6 +85,7 @@ def init_schedule():
     print request.headers
     print request.data
     Schedules.query.delete()
+    OffDuty.query.delete()
     day = date.today()
     for item in request.json.get("users"):
         #check if day to be assigned is weekend/holiday
@@ -97,6 +98,24 @@ def init_schedule():
     data = {'message': "Success!"}
     resp = jsonify(data)
     return resp
+
+'''
+@app.route('/schedule/add', methods=['POST'])
+def add_schedule():
+    #day = date.today()
+    last_date = Schedules.query.filter_by()
+    for item in request.json.get("users"):
+        #check if day to be assigned is weekend/holiday
+        day = get_next_working_day(day)
+        schedule = Schedules(day,item)
+        db.session.add(schedule)
+        db.session.commit()
+        day = day + timedelta(days=1)
+    #resp = make_response()
+    data = {'message': "Success!"}
+    resp = jsonify(data)
+    return resp
+'''
 
 @app.route('/schedule/swap', methods=['POST'])
 def swap():
@@ -117,6 +136,7 @@ def swap():
         db.session.commit()
         resp = jsonify({})
     else:
+        resp = jsonify({"error" : "Unable to swap. Incorrect schedules."})
         resp.status_code = 404
     return resp
 
@@ -157,7 +177,7 @@ def off_duty():
                         print "The off-call entry already exists"
                         db.session.rollback()
                     resp = jsonify({from_schedule.name:str(from_schedule.date),to_schedule.name : str(to_schedule.date)})
-                    break;
+                    return resp
                 else:
                     print "The user is off call on the same date"
         resp = jsonify({"error" : "No one available for replacement"})
