@@ -1,50 +1,16 @@
 __author__ = 'gauri'
 
-from flask import Flask
 from flask import make_response
 from flask import jsonify
 from flask import request
-from flask_sqlalchemy import SQLAlchemy
+from flask import Blueprint
 from datetime import datetime, date, timedelta
-from workalendar.usa import California
 import calendar
+from workalendar.usa import California
 
-app = Flask(__name__)
+from models import db
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root123@localhost/duty_scheduler'
-db = SQLAlchemy(app)
-
-# User model
-class Users(db.Model):
-    #id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), primary_key=True)
-    #schedules = db.relationship('Schedules',backref='Users')
-    #constructor
-    def __init__(self, name):
-        self.name = name
-
-
-#Schedule model
-class Schedules(db.Model):
-    date = db.Column(db.Date, primary_key=True)
-    name = db.Column(db.String(100))  #, db.ForeignKey('users.name'))
-    #constructor
-    def __init__(self, date, name):
-        self.date = date
-        self.name = name
-
-
-#off-duty model
-class OffDuty(db.Model):
-    name = db.Column(db.String(100), primary_key=True)
-    date = db.Column(db.Date, primary_key=True)
-    #constructor
-    def __init__(self, name, off_date):
-        self.name = name
-        self.date = off_date
-
-# Create tables for corresponding models defined above
-db.create_all()
+duty_api = Blueprint('duty_api', __name__)
 
 # Function to account for holidays/weekends
 def get_next_working_day(working_date):
@@ -57,12 +23,12 @@ def get_next_working_day(working_date):
         working_date = working_date + timedelta(days=1)
     return working_date
 
-@app.route("/")
+@duty_api.route("/")
 def hello():
     return "Duty Scheduler"
 
 # API to add new user
-@app.route('/users', methods=['POST'])
+@duty_api.route('/users', methods=['POST'])
 def add_users():
     print request.headers
     print request.data
@@ -76,7 +42,7 @@ def add_users():
     return resp
 
 # API to display list of users
-@app.route('/users', methods=['GET'])
+@duty_api.route('/users', methods=['GET'])
 def get_all_users():
     userList = Users.query.all()
     list = []
@@ -87,7 +53,7 @@ def get_all_users():
     return resp
 
 # API to initialize schedule by the provided starting order
-@app.route('/schedule/init', methods=['POST'])
+@duty_api.route('/schedule/init', methods=['POST'])
 def init_schedule():
     print request.headers
     print request.data
@@ -107,7 +73,7 @@ def init_schedule():
     return resp
 
 # API to swap duty with another user's specific day
-@app.route('/schedule/swap', methods=['POST'])
+@duty_api.route('/schedule/swap', methods=['POST'])
 def swap():
     from_user = request.json.get("from_user")
     from_date = request.json.get("from_date")
@@ -136,7 +102,7 @@ def swap():
     return resp
 
 # API to mark a date as off-duty and reschedule
-@app.route('/schedule/off-duty', methods=['POST'])
+@duty_api.route('/schedule/off-duty', methods=['POST'])
 def off_duty():
     resp = make_response()
     user = request.json.get("user")
@@ -187,7 +153,7 @@ def off_duty():
         return resp
 
 # API to display the schedules by query parameters of specific user or time_range
-@app.route('/schedules', methods=['GET'])
+@duty_api.route('/schedules', methods=['GET'])
 def get_schedules():
     user = request.args.get('user')
     time_range = request.args.get('time_range')
@@ -213,8 +179,3 @@ def get_schedules():
     #resp = make_response()
     resp = jsonify(schedules=json_list)
     return resp
-
-
-if __name__ == "__main__":
-    app.run(debug=1)
-

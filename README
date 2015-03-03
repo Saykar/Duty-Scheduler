@@ -1,8 +1,8 @@
 Project Description:
 This is a Duty Scheduler application developed in Python Flask and MySQL.
-app.py contains APIs defined using Flask framework to interact with MySQL database using SQLAlchemy.
+duty_app directory contains API routes and models defined using Flask framework to interact with MySQL database using SQLAlchemy.
 MySQL database stores schedule information.
-cli.py is a Command Line Interface provided to interact with users. It uses APIs defined in app.py
+cli.py is a Command Line Interface provided to interact with users. It uses APIs defined in the duty_app
 Used 'workalendar' toolkit for California holidays. https://github.com/novapost/workalendar
 
 Assumptions:
@@ -18,7 +18,7 @@ To run the project:
 2. Setup database and tables.
    python setup.py
 3. Start the API server.
-   python app.py
+   python duty_scheduler.py
 4. Use cli:
 
 Examples:
