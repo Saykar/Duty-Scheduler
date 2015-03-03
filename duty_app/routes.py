@@ -9,6 +9,7 @@ import calendar
 from workalendar.usa import California
 
 from models import db
+from models import Schedules, OffDuty
 
 duty_api = Blueprint('duty_api', __name__)
 
@@ -70,6 +71,7 @@ def init_schedule():
     #resp = make_response()
     data = {'message': "Success!"}
     resp = jsonify(data)
+    resp.status_code = 200
     return resp
 
 # API to swap duty with another user's specific day

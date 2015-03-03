@@ -76,7 +76,7 @@ if options['reschedule']:
             'date': options['reschedule'][1]}
     response = requests.post(url, json=data, headers=headers)
     if response.status_code == 200:
-        print "Success. swapped schedules:"
+        print "Success. New assignments:"
         # print response.text
         json_data = json.loads(response.text)
         for key, value in json_data.items():
