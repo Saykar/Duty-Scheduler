@@ -4,25 +4,15 @@ from flask import make_response
 from flask import jsonify
 from flask import request
 from flask import Blueprint
-from datetime import datetime, date, timedelta
-import calendar
-from workalendar.usa import California
 
-from models import db
-from models import Schedules, OffDuty
+import calendar
+from datetime import datetime, date, timedelta
+
+from duty_app import db
+from models import Schedules, OffDuty, Users
+from workcalendar import get_working_day
 
 duty_api = Blueprint('duty_api', __name__)
-
-# Function to account for holidays/weekends
-def get_next_working_day(working_date):
-    cal = California()
-    holidays = cal.holidays(working_date.year)
-    holiday_dates = []
-    for holiday in holidays:
-        holiday_dates.append(holiday[0])
-    while working_date.weekday() > 4 or working_date in holiday_dates:
-        working_date = working_date + timedelta(days=1)
-    return working_date
 
 @duty_api.route("/")
 def hello():
@@ -31,8 +21,6 @@ def hello():
 # API to add new user
 @duty_api.route('/users', methods=['POST'])
 def add_users():
-    print request.headers
-    print request.data
     for data in request.json.get("users"):
         user = Users(data)
         db.session.add(user)
@@ -56,23 +44,27 @@ def get_all_users():
 # API to initialize schedule by the provided starting order
 @duty_api.route('/schedule/init', methods=['POST'])
 def init_schedule():
-    print request.headers
-    print request.data
     Schedules.query.delete()
     OffDuty.query.delete()
     day = date.today()
-    for item in request.json.get("users"):
-        #check if day to be assigned is weekend/holiday
-        day = get_next_working_day(day)
-        schedule = Schedules(day, item)
-        db.session.add(schedule)
-        db.session.commit()
-        day = day + timedelta(days=1)
-    #resp = make_response()
-    data = {'message': "Success!"}
-    resp = jsonify(data)
-    resp.status_code = 200
-    return resp
+    if request.data is not None:
+        for item in request.json.get("users"):
+            #check if day to be assigned is weekend/holiday
+            day = get_working_day(day)
+            schedule = Schedules(day, item)
+            db.session.add(schedule)
+            db.session.commit()
+            day = day + timedelta(days=1)
+        # resp = make_response()
+        data = {'message': "Success!"}
+        resp = jsonify(data)
+        resp.status_code = 200
+        return resp
+    else:
+        data = {'error': "Empty POST request"}
+        resp = jsonify(data)
+        resp.status_code = 400
+        return resp
 
 # API to swap duty with another user's specific day
 @duty_api.route('/schedule/swap', methods=['POST'])
@@ -82,8 +74,7 @@ def swap():
     to_user = request.json.get("to_user")
     to_date = request.json.get("to_date")
     resp = make_response()
-    # For swapping duty with another user for specified date,
-    # check if correct dates are provided
+    # For swapping duty with another user for specified date, check if correct dates are provided
     if (datetime.strptime(from_date, "%Y-%m-%d").date() <= date.today() or \
                     datetime.strptime(to_date, "%Y-%m-%d").date() <= date.today()):
         resp = jsonify({"error": "Date cannot be today or before"})
@@ -173,11 +164,9 @@ def get_schedules():
             schedule_list = Schedules.query.filter(Schedules.date.between(first_day, last_day))
     else:
         schedule_list = Schedules.query.all()
-    #Display the query result as JSON
     json_list = []
     for schedule in schedule_list:
         json_obj = {str(schedule.date): schedule.name}
         json_list.append(json_obj)
-    #resp = make_response()
     resp = jsonify(schedules=json_list)
     return resp

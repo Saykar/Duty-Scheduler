@@ -1,3 +1,4 @@
 from duty_app import app
 
-app.run(debug=1)
+if __name__ == '__main__':
+    app.run(debug=1)

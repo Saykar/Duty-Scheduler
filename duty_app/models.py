@@ -1,8 +1,6 @@
 __author__ = 'gauri'
 
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from duty_app import db
 
 # User model
 class Users(db.Model):
